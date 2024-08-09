@@ -28,3 +28,6 @@ A step-by-step series of examples that tell you how to get a development environ
    ```bash
    git clone https://yourrepository.git
    cd your-project-directory
+2. **Build the Docker containers:**
+   ```bash
+   docker-compose up --build
