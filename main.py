@@ -33,136 +33,129 @@
 #     st.warning("Please select at least one column.")
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from datetime import datetime
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Set page config
-st.set_page_config(page_title="Accident Data Analysis 2021", layout="wide")
+st.set_page_config(page_title="การวิเคราะห์ข้อมูลอุบัติเหตุปี 2021", layout="wide")
 
-# Load data more efficiently
+# Load data function
 @st.cache_data
 def load_data():
-    dtypes = {
-        'วันที่เกิดเหตุ': str,
-        'เวลา': str,
-        'LATITUDE': float,
-        'LONGITUDE': float,
-        'ผู้เสียชีวิต': int,
-        'ผู้บาดเจ็บสาหัส': int,
-        'ผู้บาดเจ็บเล็กน้อย': int
-    }
-    df = pd.read_csv("accident2021.csv", dtype=dtypes)
-    
-    # Convert date column to datetime
+    df = pd.read_csv("accident2021.csv")
     df['วันที่เกิดเหตุ'] = pd.to_datetime(df['วันที่เกิดเหตุ'], format='%d/%m/%Y', errors='coerce')
-    
-    # Drop rows with invalid dates
-    df = df.dropna(subset=['วันที่เกิดเหตุ'])
-    
+    df['เวลา'] = pd.to_datetime(df['เวลา'], format='%H:%M', errors='coerce')
+    df = df.dropna(subset=['วันที่เกิดเหตุ', 'เวลา'])
     return df
 
 df = load_data()
 
-st.title("Accident Data Analysis 2021")
+st.title("การวิเคราะห์ข้อมูลอุบัติเหตุปี 2021")
 
 # 1. Analysis of accident trends
-st.header("1. Analysis of Accident Trends")
+st.header("1. การวิเคราะห์แนวโน้มอุบัติเหตุ")
 
 # Daily trend
-fig, ax = plt.subplots(figsize=(12, 6))
 daily_accidents = df['วันที่เกิดเหตุ'].dt.date.value_counts().sort_index()
-sns.lineplot(x=daily_accidents.index, y=daily_accidents.values, ax=ax)
-ax.set_title("Daily Accident Frequency")
-ax.set_xlabel("Date")
-ax.set_ylabel("Number of Accidents")
-plt.xticks(rotation=45)
-st.pyplot(fig)
+fig = px.line(x=daily_accidents.index, y=daily_accidents.values, 
+              title="ความถี่ของอุบัติเหตุรายวัน",
+              labels={"x": "วันที่", "y": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
 
 # Hourly trend
-fig, ax = plt.subplots(figsize=(12, 6))
-df['hour'] = pd.to_datetime(df['เวลา']).dt.hour
-hourly_accidents = df['hour'].value_counts().sort_index()
-sns.barplot(x=hourly_accidents.index, y=hourly_accidents.values, ax=ax)
-ax.set_title("Hourly Accident Frequency")
-ax.set_xlabel("Hour of Day")
-ax.set_ylabel("Number of Accidents")
-st.pyplot(fig)
+hourly_accidents = df['เวลา'].dt.hour.value_counts().sort_index()
+fig = px.bar(x=hourly_accidents.index, y=hourly_accidents.values, 
+             title="ความถี่ของอุบัติเหตุรายชั่วโมง",
+             labels={"x": "ชั่วโมง", "y": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
 
 # 2. Identification of high-risk areas
-st.header("2. Identification of High-risk Areas")
+st.header("2. การระบุพื้นที่เสี่ยง")
 
-# Map of accident locations (using Streamlit's map function)
-st.subheader("Map of Accident Locations")
-# Filter out rows with NaN values in LATITUDE or LONGITUDE
-map_data = df.dropna(subset=['LATITUDE', 'LONGITUDE'])
+# Map of accident locations
+st.subheader("แผนที่แสดงตำแหน่งที่เกิดอุบัติเหตุ")
+fig = px.scatter_mapbox(df, lat="LATITUDE", lon="LONGITUDE", zoom=3, 
+                        mapbox_style="open-street-map")
+fig.update_layout(height=600)
+st.plotly_chart(fig)
 
-if not map_data.empty:
-    st.map(map_data[['LATITUDE', 'LONGITUDE']])
-else:
-    st.warning("No valid location data available for mapping.")
-
-# Show statistics about the mapped data
-st.write(f"Total accidents: {len(df)}")
-st.write(f"Accidents with valid coordinates: {len(map_data)}")
-st.write(f"Percentage of accidents mapped: {len(map_data) / len(df) * 100:.2f}%")
+# Road characteristics
+road_char = df['บริเวณที่เกิดเหตุ'].value_counts()
+fig = px.pie(values=road_char.values, names=road_char.index, 
+             title="ความถี่ของอุบัติเหตุตามลักษณะถนน")
+st.plotly_chart(fig)
 
 # 3. Analysis of accident causes
-st.header("3. Analysis of Accident Causes")
+st.header("3. การวิเคราะห์สาเหตุของอุบัติเหตุ")
 
 # Suspected causes
-fig, ax = plt.subplots(figsize=(12, 6))
-causes = df['มูลเหตุสันนิษฐาน'].value_counts()
-sns.barplot(x=causes.values, y=causes.index, ax=ax)
-ax.set_title("Frequency of Suspected Causes")
-ax.set_xlabel("Number of Accidents")
-st.pyplot(fig)
+causes = df['มูลเหตุสันนิษฐาน'].value_counts().reset_index()
+causes.columns = ['สาเหตุ', 'จำนวน']
+fig = px.bar(causes, x='จำนวน', y='สาเหตุ', orientation='h',
+             title='ความถี่ของสาเหตุที่สันนิษฐาน',
+             labels={'จำนวน': 'จำนวนอุบัติเหตุ', 'สาเหตุ': 'สาเหตุ'})
+fig.update_layout(height=800)
+st.plotly_chart(fig)
 
 # Weather conditions
-fig, ax = plt.subplots(figsize=(10, 10))
-weather = df['สภาพอากาศ'].value_counts()
-ax.pie(weather.values, labels=weather.index, autopct='%1.1f%%')
-ax.set_title("Accidents by Weather Condition")
-st.pyplot(fig)
+weather = df['สภาพอากาศ'].value_counts().reset_index()
+weather.columns = ['สภาพอากาศ', 'จำนวน']
+fig = px.pie(weather, values='จำนวน', names='สภาพอากาศ', 
+             title='อุบัติเหตุตามสภาพอากาศ')
+st.plotly_chart(fig)
 
 # 4. Analysis of vehicle types
-st.header("4. Analysis of Vehicle Types")
+st.header("4. การวิเคราะห์ประเภทยานพาหนะ")
 
 vehicle_columns = ['รถจักรยานยนต์', 'รถยนต์นั่งส่วนบุคคล', 'รถปิคอัพบรรทุก4ล้อ', 'รถบรรทุก6ล้อ', 'รถอื่นๆ']
-fig, ax = plt.subplots(figsize=(12, 6))
-vehicle_counts = df[vehicle_columns].sum()
-sns.barplot(x=vehicle_counts.index, y=vehicle_counts.values, ax=ax)
-ax.set_title("Frequency of Vehicle Types in Accidents")
-ax.set_xlabel("Vehicle Type")
-ax.set_ylabel("Number of Accidents")
-plt.xticks(rotation=45)
-st.pyplot(fig)
+vehicle_counts = df[vehicle_columns].sum().sort_values(ascending=False)
+fig = px.bar(x=vehicle_counts.index, y=vehicle_counts.values,
+             title="ความถี่ของประเภทยานพาหนะในอุบัติเหตุ",
+             labels={"x": "ประเภทยานพาหนะ", "y": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
 
 # 5. Analysis of accident severity
-st.header("5. Analysis of Accident Severity")
+st.header("5. การวิเคราะห์ความรุนแรงของอุบัติเหตุ")
 
 severity_columns = ['ผู้เสียชีวิต', 'ผู้บาดเจ็บสาหัส', 'ผู้บาดเจ็บเล็กน้อย']
-fig, ax = plt.subplots(figsize=(12, 6))
 severity_data = df[severity_columns].sum()
-sns.barplot(x=severity_data.index, y=severity_data.values, ax=ax)
-ax.set_title("Accident Severity")
-ax.set_xlabel("Severity Type")
-ax.set_ylabel("Number of People")
-plt.xticks(rotation=45)
-st.pyplot(fig)
+fig = px.bar(x=severity_data.index, y=severity_data.values,
+             title="ความรุนแรงของอุบัติเหตุ",
+             labels={"x": "ประเภทความรุนแรง", "y": "จำนวนคน"})
+st.plotly_chart(fig)
 
 # Correlation between vehicle types and severity
-st.subheader("Correlation between Vehicle Types and Accident Severity")
 correlation = df[vehicle_columns + severity_columns].corr()
-fig, ax = plt.subplots(figsize=(12, 10))
-sns.heatmap(correlation, annot=True, cmap="coolwarm", ax=ax)
-st.pyplot(fig)
+fig = px.imshow(correlation, 
+                title="ความสัมพันธ์ระหว่างประเภทยานพาหนะและความรุนแรงของอุบัติเหตุ")
+st.plotly_chart(fig)
 
-# Note on additional analyses
-st.header("Additional Analyses")
+# 6. Accident prevention and reduction planning
+st.header("6. การวางแผนป้องกันและลดอุบัติเหตุ")
 st.write("""
-The following analyses would require more complex data processing or additional data:
-- Accident prevention and reduction planning
-- Predictive modeling
-- Detailed reporting and data presentation
+ข้อมูลนี้สามารถนำไปใช้ในการวางแผนป้องกันและลดอุบัติเหตุ โดยมุ่งเน้นที่:
+- พื้นที่ที่มีอุบัติเหตุบ่อย
+- ช่วงเวลาที่เกิดอุบัติเหตุมาก
+- สาเหตุหลักของอุบัติเหตุ
+- ประเภทยานพาหนะที่มีความเสี่ยงสูง
+""")
+
+# 7. Predictive modeling
+st.header("7. การสร้างแบบจำลองทำนาย")
+st.write("""
+การสร้างแบบจำลองทำนายโอกาสการเกิดอุบัติเหตุสามารถทำได้โดยใช้ข้อมูลนี้ 
+ซึ่งอาจรวมถึงการใช้เทคนิค Machine Learning เช่น:
+- การวิเคราะห์การถดถอย (Regression Analysis)
+- การจำแนกประเภท (Classification)
+- การวิเคราะห์อนุกรมเวลา (Time Series Analysis)
+""")
+
+# 8. Detailed reporting and data presentation
+st.header("8. การจัดทำรายงานและการนำเสนอข้อมูลโดยละเอียด")
+st.write("""
+การนำเสนอข้อมูลเชิงลึกเพิ่มเติมสามารถทำได้โดย:
+- สร้างแดชบอร์ดแบบโต้ตอบ (Interactive Dashboard)
+- จัดทำรายงานประจำเดือนหรือประจำปี
+- วิเคราะห์แนวโน้มระยะยาวของอุบัติเหตุ
+- เปรียบเทียบข้อมูลระหว่างภูมิภาคหรือช่วงเวลาต่างๆ
 """)
