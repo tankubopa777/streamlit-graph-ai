@@ -36,6 +36,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+
 # Set page config
 st.set_page_config(page_title="การวิเคราะห์ข้อมูลอุบัติเหตุปี 2021", layout="wide")
 
