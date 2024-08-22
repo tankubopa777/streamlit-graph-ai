@@ -130,32 +130,117 @@ fig = px.imshow(correlation,
                 title="ความสัมพันธ์ระหว่างประเภทยานพาหนะและความรุนแรงของอุบัติเหตุ")
 st.plotly_chart(fig)
 
+
 # 6. Accident prevention and reduction planning
 st.header("6. การวางแผนป้องกันและลดอุบัติเหตุ")
-st.write("""
-ข้อมูลนี้สามารถนำไปใช้ในการวางแผนป้องกันและลดอุบัติเหตุ โดยมุ่งเน้นที่:
-- พื้นที่ที่มีอุบัติเหตุบ่อย
-- ช่วงเวลาที่เกิดอุบัติเหตุมาก
-- สาเหตุหลักของอุบัติเหตุ
-- ประเภทยานพาหนะที่มีความเสี่ยงสูง
-""")
+
+# พื้นที่ที่มีอุบัติเหตุบ่อย
+st.subheader("พื้นที่ที่มีอุบัติเหตุบ่อย")
+top_accident_locations = df['จังหวัด'].value_counts().head(10)
+fig = px.bar(x=top_accident_locations.index, y=top_accident_locations.values,
+             title="10 จังหวัดที่มีอุบัติเหตุมากที่สุด",
+             labels={"x": "จังหวัด", "y": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
+
+# ช่วงเวลาที่เกิดอุบัติเหตุมาก
+st.subheader("ช่วงเวลาที่เกิดอุบัติเหตุมาก")
+df['hour'] = df['เวลา'].dt.hour
+hourly_accidents = df['hour'].value_counts().sort_index()
+fig = px.line(x=hourly_accidents.index, y=hourly_accidents.values,
+              title="จำนวนอุบัติเหตุตามช่วงเวลา",
+              labels={"x": "ชั่วโมง", "y": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
+
+# สาเหตุหลักของอุบัติเหตุ
+st.subheader("สาเหตุหลักของอุบัติเหตุ")
+top_causes = df['มูลเหตุสันนิษฐาน'].value_counts().head(5)
+fig = px.pie(values=top_causes.values, names=top_causes.index,
+             title="5 สาเหตุหลักของอุบัติเหตุ")
+st.plotly_chart(fig)
+
+# ประเภทยานพาหนะที่มีความเสี่ยงสูง
+st.subheader("ประเภทยานพาหนะที่มีความเสี่ยงสูง")
+vehicle_risk = df[vehicle_columns].sum().sort_values(ascending=False)
+fig = px.bar(x=vehicle_risk.index, y=vehicle_risk.values,
+             title="ความเสี่ยงของประเภทยานพาหนะ",
+             labels={"x": "ประเภทยานพาหนะ", "y": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
 
 # 7. Predictive modeling
 st.header("7. การสร้างแบบจำลองทำนาย")
+
+# ตัวอย่างการเตรียมข้อมูลสำหรับการสร้างแบบจำลอง
+st.subheader("การเตรียมข้อมูลสำหรับการสร้างแบบจำลอง")
 st.write("""
-การสร้างแบบจำลองทำนายโอกาสการเกิดอุบัติเหตุสามารถทำได้โดยใช้ข้อมูลนี้ 
-ซึ่งอาจรวมถึงการใช้เทคนิค Machine Learning เช่น:
-- การวิเคราะห์การถดถอย (Regression Analysis)
-- การจำแนกประเภท (Classification)
-- การวิเคราะห์อนุกรมเวลา (Time Series Analysis)
+1. การวิเคราะห์การถดถอย (Regression Analysis):
+   - ตัวแปรต้น: วันที่, เวลา, สภาพอากาศ, ประเภทถนน
+   - ตัวแปรตาม: จำนวนผู้บาดเจ็บ หรือ ความรุนแรงของอุบัติเหตุ
+
+2. การจำแนกประเภท (Classification):
+   - ตัวแปร: ประเภทยานพาหนะ, สภาพอากาศ, เวลา
+   - เป้าหมาย: การเกิดอุบัติเหตุ (เกิด/ไม่เกิด)
+
+3. การวิเคราะห์อนุกรมเวลา (Time Series Analysis):
+   - ข้อมูล: จำนวนอุบัติเหตุรายวัน หรือ รายชั่วโมง
+   - เป้าหมาย: ทำนายจำนวนอุบัติเหตุในอนาคต
 """)
+
+# ตัวอย่างการวิเคราะห์แนวโน้มเชิงเวลา
+st.subheader("ตัวอย่างการวิเคราะห์แนวโน้มเชิงเวลา")
+df['date'] = df['วันที่เกิดเหตุ'].dt.date
+daily_accidents = df.groupby('date').size().reset_index(name='count')
+fig = px.line(daily_accidents, x='date', y='count',
+              title="แนวโน้มจำนวนอุบัติเหตุรายวัน",
+              labels={"date": "วันที่", "count": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
 
 # 8. Detailed reporting and data presentation
 st.header("8. การจัดทำรายงานและการนำเสนอข้อมูลโดยละเอียด")
+
+# สร้างแดชบอร์ดแบบโต้ตอบ
+st.subheader("แดชบอร์ดแบบโต้ตอบ")
+st.write("เลือกจังหวัดเพื่อดูข้อมูลเชิงลึก:")
+selected_province = st.selectbox("เลือกจังหวัด", df['จังหวัด'].unique())
+
+province_data = df[df['จังหวัด'] == selected_province]
+
+col1, col2 = st.columns(2)
+
+with col1:
+    # จำนวนอุบัติเหตุในจังหวัดที่เลือก
+    st.metric("จำนวนอุบัติเหตุทั้งหมด", len(province_data))
+
+with col2:
+    # จำนวนผู้เสียชีวิตในจังหวัดที่เลือก
+    st.metric("จำนวนผู้เสียชีวิต", province_data['ผู้เสียชีวิต'].sum())
+
+# กราฟแสดงสาเหตุของอุบัติเหตุในจังหวัดที่เลือก
+causes_in_province = province_data['มูลเหตุสันนิษฐาน'].value_counts()
+fig = px.pie(values=causes_in_province.values, names=causes_in_province.index,
+             title=f"สาเหตุของอุบัติเหตุใน{selected_province}")
+st.plotly_chart(fig)
+
+# วิเคราะห์แนวโน้มระยะยาว
+st.subheader("วิเคราะห์แนวโน้มระยะยาว")
+monthly_accidents = df.groupby(df['วันที่เกิดเหตุ'].dt.to_period('M')).size().reset_index(name='count')
+monthly_accidents['date'] = monthly_accidents['วันที่เกิดเหตุ'].dt.to_timestamp()
+fig = px.line(monthly_accidents, x='date', y='count',
+              title="แนวโน้มจำนวนอุบัติเหตุรายเดือน",
+              labels={"date": "เดือน", "count": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
+
+# เปรียบเทียบข้อมูลระหว่างภูมิภาค
+st.subheader("เปรียบเทียบข้อมูลระหว่างภูมิภาค")
+region_accidents = df.groupby('จังหวัด').size().sort_values(ascending=False).head(10)
+fig = px.bar(x=region_accidents.index, y=region_accidents.values,
+             title="10 จังหวัดที่มีอุบัติเหตุมากที่สุด",
+             labels={"x": "จังหวัด", "y": "จำนวนอุบัติเหตุ"})
+st.plotly_chart(fig)
+
 st.write("""
-การนำเสนอข้อมูลเชิงลึกเพิ่มเติมสามารถทำได้โดย:
-- สร้างแดชบอร์ดแบบโต้ตอบ (Interactive Dashboard)
-- จัดทำรายงานประจำเดือนหรือประจำปี
-- วิเคราะห์แนวโน้มระยะยาวของอุบัติเหตุ
-- เปรียบเทียบข้อมูลระหว่างภูมิภาคหรือช่วงเวลาต่างๆ
+การวิเคราะห์และนำเสนอข้อมูลเหล่านี้สามารถช่วยในการ:
+- กำหนดนโยบายและมาตรการป้องกันอุบัติเหตุที่มีประสิทธิภาพ
+- จัดสรรทรัพยากรในการป้องกันและรับมือกับอุบัติเหตุได้อย่างเหมาะสม
+- สร้างความตระหนักรู้ให้กับประชาชนเกี่ยวกับความปลอดภัยบนท้องถนน
+- ปรับปรุงโครงสร้างพื้นฐานและระบบจราจรให้มีความปลอดภัยมากขึ้น
 """)
