@@ -38,7 +38,7 @@ import plotly.graph_objects as go
 
 
 # Set page config
-st.set_page_config(page_title="การวิเคราะห์ข้อมูลอุบัติเหตุปี 2021", layout="wide")
+st.set_page_config(page_title="การวิเคราะห์ข้อมูลอุบัติเหตุปี 2021-2024", layout="wide")
 
 # Load data function
 @st.cache_data
@@ -51,7 +51,7 @@ def load_data():
 
 df = load_data()
 
-st.title("การวิเคราะห์ข้อมูลอุบัติเหตุปี 2021")
+st.title("การวิเคราะห์ข้อมูลอุบัติเหตุปี 2021-2024")
 
 # 1. Analysis of accident trends
 st.header("1. การวิเคราะห์แนวโน้มอุบัติเหตุ")
